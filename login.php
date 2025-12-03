@@ -1,73 +1,63 @@
 <?php
-// --- LOGIQUE PHP (BACKEND) ---
+// login.php - LOGIQUE PHP (Inchangé)
 require 'includes/db.php';
-// session_start() est déjà dans header.php, mais on l'inclut après
 $error = '';
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = trim($_POST['email']);
-    $password = trim($_POST['password']); // Le mot de passe tapé par l'utilisateur
-
+    $password = trim($_POST['password']);
     if (!empty($email) && !empty($password)) {
-        // Requête préparée pour éviter les injections SQL
         $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ?");
         $stmt->execute([$email]);
         $user = $stmt->fetch();
-
-        // Vérification du mot de passe haché
         if ($user && password_verify($password, $user['mot_de_passe'])) {
-            // SUCÈS : On enregistre l'utilisateur dans la session
-            session_start(); // On s'assure que la session est active pour stocker les données
+            session_start();
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['nom'] = $user['nom'];
             $_SESSION['email'] = $user['email'];
             $_SESSION['role'] = $user['role'];
-
-            // Redirection selon le rôle
-            if ($user['role'] === 'admin') {
-                header("Location: admin/index.php");
-            } else {
-                header("Location: index.php");
-            }
+            if ($user['role'] === 'admin') header("Location: admin/index.php");
+            else header("Location: index.php");
             exit;
-        } else {
-            $error = "❌ Email ou mot de passe incorrect.";
-        }
-    } else {
-        $error = "❌ Veuillez remplir tous les champs.";
-    }
+        } else { $error = "Identifiants incorrects."; }
+    } else { $error = "Champs manquants."; }
 }
 ?>
 
 <?php include 'includes/header.php'; ?>
 
-<div class="row justify-content-center mt-5">
-    <div class="col-md-5">
-        <div class="card shadow-lg">
-            <div class="card-header bg-white text-center py-3">
-                <h3 class="mb-0">🔐 Connexion</h3>
+<div class="d-flex align-items-center justify-content-center py-5" style="min-height: 80vh;">
+    <div class="card card-custom p-4 p-md-5" style="max-width: 450px; width: 100%;">
+        
+        <div class="text-center mb-4">
+            <div class="brand-badge mx-auto mb-3" style="width: 60px; height: 60px; font-size: 1.5rem;">
+                <i class="bi bi-person-circle"></i>
             </div>
-            <div class="card-body p-4">
-                
-                <?php if($error): ?>
-                    <div class="alert alert-danger"><?= $error ?></div>
-                <?php endif; ?>
+            <h2 class="fw-bold">Bon retour !</h2>
+            <p class="text-muted">Connectez-vous pour accéder à vos événements.</p>
+        </div>
 
-                <form method="POST" action="">
-                    <div class="mb-3">
-                        <label class="form-label">Email</label>
-                        <input type="email" name="email" class="form-control" required placeholder="admin@test.com">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Mot de passe</label>
-                        <input type="password" name="password" class="form-control" required placeholder="password">
-                    </div>
-                    <button type="submit" class="btn btn-primary w-100 btn-lg">Se connecter</button>
-                </form>
+        <?php if($error): ?>
+            <div class="alert alert-danger border-0 bg-danger bg-opacity-10 text-danger rounded-3 text-center">
+                <i class="bi bi-exclamation-circle me-2"></i> <?= $error ?>
             </div>
-            <div class="card-footer text-center bg-light">
-                <small class="text-muted">Pas encore de compte ? Contactez l'admin.</small>
+        <?php endif; ?>
+
+        <form method="POST">
+            <div class="form-floating mb-3">
+                <input type="email" name="email" class="form-control rounded-3 border-light bg-light" id="floatEmail" placeholder="name@example.com" required>
+                <label for="floatEmail">Adresse Email</label>
             </div>
+            <div class="form-floating mb-4">
+                <input type="password" name="password" class="form-control rounded-3 border-light bg-light" id="floatPass" placeholder="Password" required>
+                <label for="floatPass">Mot de passe</label>
+            </div>
+            
+            <button type="submit" class="btn btn-gradient w-100 py-3 rounded-3 fs-5">Se connecter</button>
+        </form>
+
+        <div class="text-center mt-4 pt-3 border-top">
+            <span class="text-muted">Pas encore de compte ?</span>
+            <a href="register.php" class="fw-bold text-decoration-none" style="color: var(--primaryA);">Créer un compte</a>
         </div>
     </div>
 </div>
