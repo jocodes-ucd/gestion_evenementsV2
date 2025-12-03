@@ -1,0 +1,53 @@
+/* /css/style.css */
+body {
+    background-color: #f0f2f5; /* Gris très doux pour le contraste */
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Effet "Carte Moderne" */
+.card-custom {
+    border: none;
+    border-radius: 15px;
+    background: white;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+    transition: all 0.3s ease;
+    overflow: hidden;
+}
+
+/* Animation au survol (Réactif) */
+.card-custom:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+}
+
+/* En-tête de carte coloré */
+.card-header-custom {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 20px;
+    font-weight: bold;
+}
+
+/* Boutons modernes */
+.btn-gradient {
+    background: linear-gradient(45deg, #2193b0, #6dd5ed);
+    border: none;
+    color: white;
+    font-weight: 600;
+    padding: 10px 20px;
+    border-radius: 30px; /* Boutons très ronds */
+    transition: transform 0.2s;
+}
+
+.btn-gradient:hover {
+    transform: scale(1.05); /* Petit effet de zoom */
+    color: white;
+    box-shadow: 0 5px 15px rgba(33, 147, 176, 0.4);
+}
+
+/* Badge statut */
+.badge-custom {
+    padding: 8px 12px;
+    border-radius: 12px;
+    font-size: 0.9em;
+}
