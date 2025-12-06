@@ -42,7 +42,7 @@ $events = $stmt->fetchAll();
     <div class="container pb-5">
         <div class="row align-items-center g-5">
             <div class="col-lg-7 position-relative" style="z-index: 2;">
-                <div class="badge bg-white bg-opacity-25 text-white mb-3 px-3 py-2 rounded-pill">🎉 PLATEFORME INTERNE</div>
+                <div class="badge bg-white bg-opacity-25 text-white mb-3 px-3 py-2 rounded-pill">PLATEFORME INTERNE</div>
                 <h1 class="display-3 fw-bold mb-4">
                     Gérez vos événements<br/>
                     <span style="color: #ffb4f0;">simplement.</span>
@@ -73,25 +73,47 @@ $events = $stmt->fetchAll();
 
 <main class="py-5" id="agenda">
     <div class="container">
-        <div class="card card-custom p-4 mb-5" style="margin-top: -80px; position: relative; z-index: 10;">
-            <form class="row g-3" action="events.php"> <div class="col-md-9">
-                     <input type="text" class="form-control border-0 bg-light py-3 rounded-3" placeholder="🔍 Rechercher un événement...">
-                 </div>
-                 <div class="col-md-3">
-                     <button type="submit" class="btn btn-gradient w-100 py-3 rounded-3">Trouver</button>
-                 </div>
+        <div class="card card-custom p-4 mb-5 shadow-lg" style="margin-top: -80px; position: relative; z-index: 10;">
+            <form class="row g-3" action="events.php" method="GET">
+                <div class="col-md-7">
+                    <input type="text" name="search" class="form-control border-0 bg-light py-3 rounded-3 px-4" 
+                           placeholder="🔍 Rechercher un événement par titre, lieu ou description..."
+                           value="<?= isset($_GET['search']) ? htmlspecialchars($_GET['search']) : '' ?>">
+                </div>
+                <div class="col-md-3">
+                    <select name="categorie" class="form-select border-0 bg-light py-3 rounded-3">
+                        <option value="">📂 Toutes catégories</option>
+                        <?php
+                        $catStmt = $pdo->query("SELECT id, nom FROM categories ORDER BY nom");
+                        while($cat = $catStmt->fetch()):
+                        ?>
+                            <option value="<?= $cat['id'] ?>"><?= htmlspecialchars($cat['nom']) ?></option>
+                        <?php endwhile; ?>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-gradient w-100 py-3 rounded-3 fw-bold">
+                        <i class="bi bi-search me-1"></i> Trouver
+                    </button>
+                </div>
             </form>
         </div>
 
         <div class="d-flex align-items-end justify-content-between mb-4">
-            <h2 class="fw-bold display-6">📅 Prochains Événements</h2>
+            <div>
+                <h2 class="fw-bold display-6 mb-1">Prochains Événements</h2>
+                <p class="text-muted">Ne manquez pas ces événements à venir</p>
+            </div>
+            <a href="events.php" class="btn btn-outline-primary rounded-pill px-4">
+                <i class="bi bi-calendar3 me-2"></i>Tout voir
+            </a>
         </div>
 
         <div class="row g-4">
             <?php if(count($events) > 0): ?>
                 <?php foreach($events as $event): ?>
                     <div class="col-lg-4 col-md-6">
-                        <div class="card card-custom h-100 group-hover">
+                        <div class="card card-custom h-100 group-hover border-0 shadow-sm">
                             <div style="height:220px; overflow: hidden; position: relative;">
                                 <?php 
                                     $img = "https://images.unsplash.com/photo-1475721027767-9662938a5a63?w=800"; 
@@ -100,25 +122,38 @@ $events = $stmt->fetchAll();
                                 ?>
                                 <img src="<?= $img ?>" style="width:100%; height:100%; object-fit:cover; transition:transform 0.5s;" 
                                      onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
-                                <div class="position-absolute top-0 start-0 m-3 badge bg-white text-dark fw-bold shadow-sm">
-                                    <?= htmlspecialchars($event['categorie_nom']) ?>
+                                <div class="position-absolute top-0 start-0 m-3">
+                                    <span class="badge bg-white text-dark fw-bold shadow-sm px-3 py-2 rounded-pill">
+                                        <i class="bi bi-tag-fill me-1 text-primary"></i>
+                                        <?= htmlspecialchars($event['categorie_nom']) ?>
+                                    </span>
+                                </div>
+                                <div class="position-absolute bottom-0 end-0 m-3">
+                                    <span class="badge bg-dark bg-opacity-75 text-white fw-bold shadow px-3 py-2">
+                                        <i class="bi bi-clock-fill me-1"></i>
+                                        <?= date('H:i', strtotime($event['date_evenement'])) ?>
+                                    </span>
                                 </div>
                             </div>
 
                             <div class="card-body p-4 d-flex flex-column">
-                                <div class="text-muted small fw-bold mb-2">
-                                    <i class="bi bi-calendar-check me-1 text-primary"></i>
-                                    <?= date('d F Y', strtotime($event['date_evenement'])) ?>
+                                <div class="text-muted small fw-bold mb-3 d-flex align-items-center gap-2">
+                                    <i class="bi bi-calendar-event text-primary fs-5"></i>
+                                    <span><?= date('d F Y', strtotime($event['date_evenement'])) ?></span>
                                 </div>
-                                <h4 class="fw-bold mb-2"><?= htmlspecialchars($event['titre']) ?></h4>
-                                <div class="text-secondary small mb-3">
-                                    <i class="bi bi-geo-alt-fill text-danger me-1"></i> <?= htmlspecialchars($event['lieu']) ?>
+                                <h4 class="fw-bold mb-3 text-dark" style="min-height: 60px;">
+                                    <?= htmlspecialchars($event['titre']) ?>
+                                </h4>
+                                <div class="text-muted small mb-3 d-flex align-items-start gap-2">
+                                    <i class="bi bi-geo-alt-fill text-danger fs-5"></i>
+                                    <span><?= htmlspecialchars($event['lieu']) ?></span>
                                 </div>
-                                <p class="text-muted small flex-grow-1">
-                                    <?= substr(htmlspecialchars($event['description']), 0, 90) ?>...
+                                <p class="text-secondary small flex-grow-1 mb-4" style="min-height: 60px;">
+                                    <?= substr(htmlspecialchars($event['description']), 0, 110) ?>...
                                 </p>
-                                <a href="event_details.php?id=<?= $event['id'] ?>" class="btn btn-outline-dark fw-bold rounded-3 mt-3">
-                                    Réserver ma place
+                                <a href="event_details.php?id=<?= $event['id'] ?>" 
+                                   class="btn btn-primary fw-bold rounded-pill mt-auto w-100 py-2 shadow-sm">
+                                    <i class="bi bi-box-arrow-in-right me-2"></i>Réserver ma place
                                 </a>
                             </div>
                         </div>
@@ -126,17 +161,19 @@ $events = $stmt->fetchAll();
                 <?php endforeach; ?>
             <?php else: ?>
                 <div class="col-12 text-center py-5">
-                    <div class="alert alert-light d-inline-block px-5 shadow-sm">
-                        <h4>Aucun événement à venir 😴</h4>
-                        <p>L'agenda est vide pour le moment.</p>
+                    <div class="card border-0 shadow-sm d-inline-block px-5 py-4">
+                        <i class="bi bi-calendar-x display-1 text-muted mb-3"></i>
+                        <h4 class="fw-bold mb-2">Aucun événement à venir</h4>
+                        <p class="text-muted mb-0">L'agenda est vide pour le moment. Revenez bientôt !</p>
                     </div>
                 </div>
             <?php endif; ?>
         </div>
 
-        <div class="text-center mt-5">
-            <a href="events.php" class="btn btn-light text-primary fw-bold px-5 py-3 rounded-pill shadow-sm border">
-                Voir tout l'agenda <i class="bi bi-arrow-right ms-2"></i>
+        <div class="text-center mt-5 mb-5">
+            <a href="events.php" class="btn btn-lg btn-gradient text-white fw-bold px-5 py-3 rounded-pill shadow">
+                <i class="bi bi-calendar3-range me-2"></i>Voir tout l'agenda
+                <i class="bi bi-arrow-right ms-2"></i>
             </a>
         </div>
 

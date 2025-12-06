@@ -4,8 +4,24 @@ require '../includes/db.php';
 require 'auth_check.php';
 include '../includes/header.php';
 
-// --- 1. DONNÉES TABLEAU ---
-$sql = "SELECT e.*, c.nom as cat_nom FROM evenements e LEFT JOIN categories c ON e.categorie_id = c.id ORDER BY date_evenement DESC";
+// --- STATISTICS QUERIES ---
+$totalEvents = $pdo->query("SELECT COUNT(*) FROM evenements")->fetchColumn();
+$totalRegistrations = $pdo->query("SELECT COUNT(*) FROM inscriptions")->fetchColumn();
+$thisMonthEvents = $pdo->query("SELECT COUNT(*) FROM evenements WHERE MONTH(date_evenement) = MONTH(CURRENT_DATE()) AND YEAR(date_evenement) = YEAR(CURRENT_DATE())")->fetchColumn();
+$upcomingEvents = $pdo->query("SELECT COUNT(*) FROM evenements WHERE date_evenement >= NOW()")->fetchColumn();
+
+// --- PAGINATION VARIABLES ---
+$page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+$perPage = 10;
+$offset = ($page - 1) * $perPage;
+$totalCount = $pdo->query("SELECT COUNT(*) FROM evenements")->fetchColumn();
+$totalPages = max(1, ceil($totalCount / $perPage));
+
+// Ensure page is within valid range
+if ($page > $totalPages) $page = $totalPages;
+
+// --- 1. DONNÉES TABLEAU (with pagination) ---
+$sql = "SELECT e.*, c.nom as cat_nom FROM evenements e LEFT JOIN categories c ON e.categorie_id = c.id ORDER BY date_evenement DESC LIMIT $perPage OFFSET $offset";
 $stmt = $pdo->query($sql);
 $events = $stmt->fetchAll();
 
@@ -46,6 +62,62 @@ for ($i=6; $i>=0; $i--) {
         </div>
     </div>
 
+    <!-- STATISTICS CARDS -->
+    <div class="row g-4 mb-5">
+        <div class="col-md-6 col-lg-3">
+            <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <p class="text-muted small text-uppercase fw-bold mb-2">Total Événements</p>
+                        <h3 class="fw-bold mb-0"><?= $totalEvents ?></h3>
+                    </div>
+                    <div class="bg-primary bg-opacity-10 rounded-circle p-3">
+                        <i class="bi bi-calendar-event text-primary fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+            <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <p class="text-muted small text-uppercase fw-bold mb-2">À Venir</p>
+                        <h3 class="fw-bold mb-0"><?= $upcomingEvents ?></h3>
+                    </div>
+                    <div class="bg-success bg-opacity-10 rounded-circle p-3">
+                        <i class="bi bi-arrow-up-circle text-success fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+            <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <p class="text-muted small text-uppercase fw-bold mb-2">Inscriptions</p>
+                        <h3 class="fw-bold mb-0"><?= $totalRegistrations ?></h3>
+                    </div>
+                    <div class="bg-info bg-opacity-10 rounded-circle p-3">
+                        <i class="bi bi-people text-info fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+            <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <p class="text-muted small text-uppercase fw-bold mb-2">Ce Mois-ci</p>
+                        <h3 class="fw-bold mb-0"><?= $thisMonthEvents ?></h3>
+                    </div>
+                    <div class="bg-warning bg-opacity-10 rounded-circle p-3">
+                        <i class="bi bi-calendar-month text-warning fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="row g-4 mb-5">
         <div class="col-lg-6">
             <div class="card card-custom h-100 p-4 border-0 shadow-sm">
@@ -68,7 +140,7 @@ for ($i=6; $i>=0; $i--) {
     <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
         <div class="card-header bg-white p-4 border-bottom d-flex justify-content-between align-items-center">
             <h5 class="mb-0 fw-bold text-dark"><i class="bi bi-list-task me-2 text-primary"></i>Liste des événements</h5>
-            <span class="badge bg-light text-dark border"><?= count($events) ?> événements</span>
+            <span class="badge bg-light text-dark border"><?= count($events) ?> événements (page <?= $page ?>/<?= $totalPages ?>)</span>
         </div>
         
         <div class="card-body p-0">
@@ -176,6 +248,55 @@ for ($i=6; $i>=0; $i--) {
                 </table>
             </div>
         </div>
+        
+        <!-- PAGINATION CONTROLS -->
+        <?php if ($totalPages > 1): ?>
+        <div class="card-footer bg-white border-top p-4">
+            <nav aria-label="Event pagination">
+                <ul class="pagination justify-content-center mb-3">
+                    <!-- Previous Button -->
+                    <li class="page-item <?= $page <= 1 ? 'disabled' : '' ?>">
+                        <a class="page-link rounded-pill me-2" href="?page=<?= max(1, $page - 1) ?>" aria-label="Précédent">
+                            <i class="bi bi-chevron-left"></i>
+                        </a>
+                    </li>
+                    
+                    <?php
+                    // Smart pagination: show first, last, current and nearby pages
+                    $range = 2; // Number of pages to show on each side of current page
+                    
+                    for ($i = 1; $i <= $totalPages; $i++):
+                        // Show first page, last page, current page, and pages within range
+                        if ($i == 1 || $i == $totalPages || ($i >= $page - $range && $i <= $page + $range)):
+                    ?>
+                        <li class="page-item <?= $i == $page ? 'active' : '' ?>">
+                            <a class="page-link rounded-pill mx-1" href="?page=<?= $i ?>"><?= $i ?></a>
+                        </li>
+                    <?php
+                        // Show ellipsis
+                        elseif ($i == $page - $range - 1 || $i == $page + $range + 1):
+                    ?>
+                        <li class="page-item disabled">
+                            <span class="page-link border-0">...</span>
+                        </li>
+                    <?php
+                        endif;
+                    endfor;
+                    ?>
+                    
+                    <!-- Next Button -->
+                    <li class="page-item <?= $page >= $totalPages ? 'disabled' : '' ?>">
+                        <a class="page-link rounded-pill ms-2" href="?page=<?= min($totalPages, $page + 1) ?>" aria-label="Suivant">
+                            <i class="bi bi-chevron-right"></i>
+                        </a>
+                    </li>
+                </ul>
+                <p class="text-center text-muted small mb-0">
+                    Page <?= $page ?> sur <?= $totalPages ?> • <?= $totalCount ?> événement<?= $totalCount > 1 ? 's' : '' ?> au total
+                </p>
+            </nav>
+        </div>
+        <?php endif; ?>
     </div>
 </div>
 

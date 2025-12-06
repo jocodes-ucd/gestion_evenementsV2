@@ -83,8 +83,22 @@ if (isset($_SESSION['user_id']) && isset($pdo)) {
     
     <div class="collapse navbar-collapse" id="navMain">
       <ul class="navbar-nav ms-auto align-items-center gap-2">
-        <li class="nav-item"><a class="nav-link" href="/gestion_evenements/index.php">ACCUEIL</a></li>
-        <li class="nav-item"><a class="nav-link" href="/gestion_evenements/events.php">AGENDA</a></li>
+        
+        <?php if(isset($_SESSION['user_id']) && $_SESSION['role'] === 'admin'): ?>
+            <!-- ADMIN NAVIGATION -->
+            <li class="nav-item"><a class="nav-link" href="/gestion_evenements/admin/index.php"><i class="bi bi-speedometer2 me-1"></i>TABLEAU DE BORD</a></li>
+            <li class="nav-item"><a class="nav-link" href="/gestion_evenements/admin/users.php"><i class="bi bi-people me-1"></i>UTILISATEURS</a></li>
+            <li class="nav-item"><a class="nav-link" href="/gestion_evenements/admin/create_event.php"><i class="bi bi-plus-circle me-1"></i>CRÉER ÉVÉNEMENT</a></li>
+        <?php elseif(isset($_SESSION['user_id'])): ?>
+            <!-- REGULAR USER NAVIGATION -->
+            <li class="nav-item"><a class="nav-link" href="/gestion_evenements/index.php">ACCUEIL</a></li>
+            <li class="nav-item"><a class="nav-link" href="/gestion_evenements/mon_espace.php"><i class="bi bi-speedometer2 me-1"></i>MON ESPACE</a></li>
+            <li class="nav-item"><a class="nav-link" href="/gestion_evenements/events.php">AGENDA</a></li>
+        <?php else: ?>
+            <!-- NOT LOGGED IN NAVIGATION -->
+            <li class="nav-item"><a class="nav-link" href="/gestion_evenements/index.php">ACCUEIL</a></li>
+            <li class="nav-item"><a class="nav-link" href="/gestion_evenements/events.php">AGENDA</a></li>
+        <?php endif; ?>
         
         <?php if(isset($_SESSION['user_id'])): ?>
             
@@ -126,12 +140,6 @@ if (isset($_SESSION['user_id']) && isset($pdo)) {
                 </ul>
             </li>
 
-            <?php if($_SESSION['role'] === 'admin'): ?>
-                <li class="nav-item me-2">
-                    <a class="btn btn-sm btn-warning fw-bold text-dark px-3 rounded-pill" href="/gestion_evenements/admin/index.php">ADMIN</a>
-                </li>
-            <?php endif; ?>
-            
             <li class="nav-item dropdown">
                 <a class="nav-link p-0" href="#" role="button" data-bs-toggle="dropdown">
                     <?php 
@@ -147,8 +155,17 @@ if (isset($_SESSION['user_id']) && isset($pdo)) {
                     <img src="<?= htmlspecialchars($avatarUrl) ?>" class="nav-avatar">
                 </a>
                 <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-4 mt-2">
-                    <li class="px-3 py-2 text-muted small fw-bold">Compte<br><span class="text-dark"><?= htmlspecialchars($_SESSION['nom']) ?></span></li>
+                    <li class="px-3 py-2 text-muted small fw-bold">
+                        <?= $_SESSION['role'] === 'admin' ? '👑 Admin' : 'Compte' ?><br>
+                        <span class="text-dark"><?= htmlspecialchars($_SESSION['nom']) ?></span>
+                    </li>
                     <li><hr class="dropdown-divider"></li>
+                    
+                    <?php if($_SESSION['role'] === 'admin'): ?>
+                        <li><a class="dropdown-item fw-bold" href="/gestion_evenements/index.php"><i class="bi bi-eye me-2"></i>Voir le Site Public</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                    <?php endif; ?>
+                    
                     <li><a class="dropdown-item fw-bold" href="/gestion_evenements/profile.php"><i class="bi bi-gear me-2"></i>Paramètres</a></li>
                     <li><a class="dropdown-item text-danger fw-bold" href="/gestion_evenements/logout.php"><i class="bi bi-box-arrow-right me-2"></i>Déconnexion</a></li>
                 </ul>
