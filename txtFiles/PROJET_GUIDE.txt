@@ -1,0 +1,577 @@
+================================================================================
+              GUIDE COMPLET DU PROJET - GESTION DES ÉVÉNEMENTS
+                    Analyse Technique & Explication du Code
+================================================================================
+
+================================================================================
+PARTIE 1 - ARCHITECTURE (Structure du Projet)
+================================================================================
+
+1.1 STRUCTURE MVC SIMPLIFIÉE
+────────────────────────────
+Ce projet utilise une architecture MVC simplifiée (sans framework) :
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  MODÈLE (Model)     │  CONTRÔLEUR (Controller)  │  VUE (View)              │
+├─────────────────────┼───────────────────────────┼──────────────────────────┤
+│  includes/db.php    │  Chaque fichier .php      │  HTML dans les fichiers  │
+│  Requêtes SQL       │  (login.php, events.php)  │  + includes/header.php   │
+│  dans les fichiers  │  gère sa propre logique   │  + includes/footer.php   │
+└─────────────────────┴───────────────────────────┴──────────────────────────┘
+
+DIFFÉRENCE AVEC UN VRAI MVC :
+- Pas de routeur central (chaque fichier = une route)
+- Logique métier mélangée avec l'affichage
+- Simple mais efficace pour un petit projet
+
+
+1.2 ORGANISATION DES DOSSIERS
+─────────────────────────────
+gestion_evenements/
+│
+├── index.php              # Page d'accueil (Hero + 3 événements)
+├── events.php             # Liste complète des événements
+├── event_details.php      # Détail d'un événement + inscription
+├── login.php              # Connexion utilisateur
+├── register.php           # Création de compte
+├── logout.php             # Déconnexion (détruit session)
+├── mon_espace.php         # Dashboard utilisateur personnel
+├── profile.php            # Gestion du profil
+├── notifications.php      # Liste des notifications
+├── forgot_password.php    # Récupération mot de passe
+├── reset_password.php     # Réinitialisation mot de passe
+│
+├── admin/                 # ESPACE ADMINISTRATION
+│   ├── index.php          # Dashboard admin (stats + liste événements)
+│   ├── create_event.php   # Formulaire création événement
+│   ├── edit_event.php     # Modification événement
+│   ├── delete_event.php   # Suppression événement
+│   ├── participants.php   # Liste inscrits par événement
+│   ├── users.php          # Gestion des utilisateurs
+│   ├── user_details.php   # Détail d'un utilisateur
+│   ├── edit_user_role.php # Changer rôle (user/admin)
+│   ├── delete_user.php    # Supprimer utilisateur
+│   └── auth_check.php     # Vérification accès admin
+│
+├── includes/              # FICHIERS PARTAGÉS
+│   ├── db.php             # Connexion base de données (PDO)
+│   ├── header.php         # En-tête HTML + navigation
+│   ├── footer.php         # Pied de page + scripts JS
+│   └── mailer.php         # Configuration PHPMailer
+│
+├── css/
+│   └── style.css          # Styles personnalisés
+│
+└── uploads/               # FICHIERS UPLOADÉS
+    ├── avatars/           # Photos de profil utilisateurs
+    └── events/            # Images des événements
+
+
+1.3 BASE DE DONNÉES (Tables Principales)
+────────────────────────────────────────
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              BASE: event_system                             │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  USERS (utilisateurs)          │  EVENEMENTS                               │
+│  ─────────────────────         │  ────────────                             │
+│  id (PK)                       │  id (PK)                                  │
+│  nom                           │  titre                                    │
+│  email (unique)                │  description                              │
+│  password (hashé)              │  date_evenement                           │
+│  role (admin/user)             │  lieu                                     │
+│  avatar                        │  categorie_id (FK → categories)          │
+│  is_verified                   │  nb_max_participants                      │
+│  created_at                    │  image                                    │
+│                                │  created_at                               │
+│                                                                             │
+│  INSCRIPTIONS                  │  CATEGORIES                               │
+│  ────────────                  │  ──────────                               │
+│  id (PK)                       │  id (PK)                                  │
+│  evenement_id (FK)             │  nom                                      │
+│  nom_participant               │                                           │
+│  email_participant             │  NOTIFICATIONS                            │
+│  date_inscription              │  ─────────────                            │
+│                                │  id (PK)                                  │
+│                                │  user_id (FK)                             │
+│                                │  evenement_id (FK)                        │
+│                                │  message                                  │
+│                                │  is_read                                  │
+│                                │  created_at                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+
+================================================================================
+PARTIE 2 - FICHIERS CLÉS (Explication Détaillée)
+================================================================================
+
+2.1 includes/db.php - CONNEXION BASE DE DONNÉES
+────────────────────────────────────────────────
+<?php
+$host = 'localhost';
+$dbname = 'event_system';
+$user = 'root';
+$pass = '';
+
+try {
+    $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8", $user, $pass);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+} catch(PDOException $e) {
+    die("Erreur DB: " . $e->getMessage());
+}
+?>
+
+EXPLICATION :
+- PDO = PHP Data Objects (interface sécurisée pour bases de données)
+- ERRMODE_EXCEPTION = Lève des exceptions en cas d'erreur
+- FETCH_ASSOC = Retourne les résultats en tableau associatif
+
+
+2.2 index.php - PAGE D'ACCUEIL
+──────────────────────────────
+STRUCTURE :
+1. Inclure db.php et header.php
+2. Récupérer les 3 prochains événements
+3. Afficher Hero + Formulaire recherche + Cartes événements
+
+CODE CLÉ :
+<?php
+require 'includes/db.php';
+include 'includes/header.php';
+
+// Récupérer les 3 prochains événements
+$sql = "SELECT e.*, c.nom as categorie_nom 
+        FROM evenements e 
+        LEFT JOIN categories c ON e.categorie_id = c.id 
+        ORDER BY e.date_evenement ASC 
+        LIMIT 3";
+$stmt = $pdo->query($sql);
+$events = $stmt->fetchAll();
+?>
+<!-- HTML : Hero section + boucle foreach pour afficher les événements -->
+
+
+2.3 login.php - AUTHENTIFICATION
+────────────────────────────────
+FLUX :
+1. Afficher formulaire (GET)
+2. Traiter soumission (POST)
+3. Vérifier email/password
+4. Créer session si OK
+5. Rediriger selon rôle
+
+CODE CLÉ :
+<?php
+session_start();
+require 'includes/db.php';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $email = trim($_POST['email']);
+    $password = $_POST['password'];
+    
+    // Chercher l'utilisateur
+    $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ?");
+    $stmt->execute([$email]);
+    $user = $stmt->fetch();
+    
+    // Vérifier mot de passe (hashé avec password_hash)
+    if ($user && password_verify($password, $user['password'])) {
+        // Créer la session
+        $_SESSION['user_id'] = $user['id'];
+        $_SESSION['nom'] = $user['nom'];
+        $_SESSION['email'] = $user['email'];
+        $_SESSION['role'] = $user['role'];
+        
+        // Rediriger selon rôle
+        if ($user['role'] === 'admin') {
+            header('Location: admin/index.php');
+        } else {
+            header('Location: mon_espace.php');
+        }
+        exit;
+    } else {
+        $error = "Email ou mot de passe incorrect";
+    }
+}
+?>
+
+
+2.4 mon_espace.php - DASHBOARD UTILISATEUR
+──────────────────────────────────────────
+FONCTIONNALITÉS :
+- Statistiques personnelles (événements à venir, total inscriptions)
+- Liste des événements inscrits
+- Événements passés
+- Notifications récentes
+- Actions rapides
+
+CODE CLÉ :
+<?php
+session_start();
+require 'includes/db.php';
+
+// Vérifier connexion
+if (!isset($_SESSION['user_id'])) {
+    header('Location: login.php');
+    exit;
+}
+
+$userEmail = $_SESSION['email'];
+
+// Événements à venir (inscrits)
+$sql = "SELECT e.*, c.nom as categorie_nom
+        FROM inscriptions i
+        INNER JOIN evenements e ON i.evenement_id = e.id
+        LEFT JOIN categories c ON e.categorie_id = c.id
+        WHERE i.email_participant = ? AND e.date_evenement >= NOW()
+        ORDER BY e.date_evenement ASC";
+$stmt = $pdo->prepare($sql);
+$stmt->execute([$userEmail]);
+$upcomingEvents = $stmt->fetchAll();
+?>
+
+
+2.5 admin/index.php - DASHBOARD ADMIN
+─────────────────────────────────────
+FONCTIONNALITÉS :
+- Statistiques globales (total événements, inscriptions, ce mois)
+- Graphiques (Chart.js)
+- Liste paginée des événements
+- Actions : modifier, supprimer, voir participants
+
+CODE CLÉ :
+<?php
+require '../includes/db.php';
+require 'auth_check.php';  // Vérifie que l'user est admin
+
+// Statistiques
+$totalEvents = $pdo->query("SELECT COUNT(*) FROM evenements")->fetchColumn();
+$totalRegistrations = $pdo->query("SELECT COUNT(*) FROM inscriptions")->fetchColumn();
+
+// Pagination
+$page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+$perPage = 10;
+$offset = ($page - 1) * $perPage;
+
+$sql = "SELECT e.*, c.nom as cat_nom 
+        FROM evenements e 
+        LEFT JOIN categories c ON e.categorie_id = c.id 
+        ORDER BY date_evenement DESC 
+        LIMIT $perPage OFFSET $offset";
+$events = $pdo->query($sql)->fetchAll();
+?>
+
+
+2.6 includes/header.php - NAVIGATION DYNAMIQUE
+──────────────────────────────────────────────
+LOGIQUE :
+- Navigation différente selon le rôle (admin/user/visiteur)
+- Affichage des notifications
+- Dropdown profil avec avatar
+
+CODE CLÉ :
+<?php
+if (session_status() === PHP_SESSION_NONE) { session_start(); }
+
+// Compter notifications non lues
+if (isset($_SESSION['user_id'])) {
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM notifications WHERE user_id = ? AND is_read = 0");
+    $stmt->execute([$_SESSION['user_id']]);
+    $unreadCount = $stmt->fetchColumn();
+}
+?>
+
+<nav>
+    <?php if(isset($_SESSION['user_id']) && $_SESSION['role'] === 'admin'): ?>
+        <!-- Menu Admin : Dashboard, Utilisateurs, Créer événement -->
+    <?php elseif(isset($_SESSION['user_id'])): ?>
+        <!-- Menu User : Accueil, Mon Espace, Agenda -->
+    <?php else: ?>
+        <!-- Menu Visiteur : Accueil, Agenda, Connexion -->
+    <?php endif; ?>
+</nav>
+
+
+================================================================================
+PARTIE 3 - FLUX UTILISATEUR
+================================================================================
+
+3.1 PARCOURS VISITEUR → UTILISATEUR → ADMIN
+────────────────────────────────────────────
+
+VISITEUR (non connecté) :
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  index.php → events.php → event_details.php                                │
+│                                ↓                                            │
+│                    "Connectez-vous pour vous inscrire"                     │
+│                                ↓                                            │
+│                          login.php ←──── register.php                      │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+UTILISATEUR (connecté, role = 'user') :
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  Peut accéder à :                                                           │
+│  • index.php, events.php, event_details.php                                │
+│  • mon_espace.php (dashboard personnel)                                    │
+│  • profile.php (modifier profil)                                           │
+│  • notifications.php                                                        │
+│  • S'inscrire/se désinscrire aux événements                                │
+│                                                                             │
+│  NE PEUT PAS accéder à :                                                   │
+│  • admin/* (redirigé vers index.php)                                       │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+ADMIN (connecté, role = 'admin') :
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  Peut accéder à TOUT + :                                                   │
+│  • admin/index.php (dashboard admin)                                       │
+│  • admin/create_event.php, edit_event.php, delete_event.php               │
+│  • admin/participants.php                                                   │
+│  • admin/users.php, user_details.php, edit_user_role.php                  │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+
+3.2 INSCRIPTION À UN ÉVÉNEMENT (Étapes)
+───────────────────────────────────────
+1. User clique sur "Réserver" dans events.php
+2. Redirigé vers event_details.php?id=X
+3. Vérifie si connecté (sinon message "connectez-vous")
+4. Vérifie si déjà inscrit
+5. Vérifie si places disponibles
+6. POST → INSERT INTO inscriptions
+7. Crée notification "Inscription confirmée"
+8. Affiche message succès
+
+CODE (event_details.php) :
+<?php
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm_registration'])) {
+    // Vérifier places disponibles
+    $countStmt = $pdo->prepare("SELECT COUNT(*) FROM inscriptions WHERE evenement_id = ?");
+    $countStmt->execute([$id]);
+    $inscrits = $countStmt->fetchColumn();
+    
+    if ($inscrits < $event['nb_max_participants']) {
+        // Inscrire
+        $pdo->prepare("INSERT INTO inscriptions (evenement_id, nom_participant, email_participant) 
+                       VALUES (?, ?, ?)")
+            ->execute([$id, $_SESSION['nom'], $_SESSION['email']]);
+        
+        // Créer notification
+        $pdo->prepare("INSERT INTO notifications (user_id, evenement_id, message) 
+                       VALUES (?, ?, ?)")
+            ->execute([$_SESSION['user_id'], $id, "Inscription confirmée : " . $event['titre']]);
+        
+        $message = "Inscription validée !";
+    } else {
+        $message = "Événement complet !";
+    }
+}
+?>
+
+
+3.3 CRÉATION D'ÉVÉNEMENT (Admin)
+────────────────────────────────
+1. Admin accède à admin/create_event.php
+2. Remplit formulaire (titre, description, date, lieu, catégorie, image)
+3. Upload image si fournie
+4. INSERT INTO evenements
+5. Redirigé vers admin/index.php avec message succès
+
+CODE (admin/create_event.php) :
+<?php
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $titre = trim($_POST['titre']);
+    $description = trim($_POST['description']);
+    $date = $_POST['date_evenement'];
+    $lieu = trim($_POST['lieu']);
+    $categorie = $_POST['categorie_id'];
+    $nbMax = (int)$_POST['nb_max_participants'];
+    
+    // Gestion upload image
+    $imagePath = null;
+    if (isset($_FILES['image']) && $_FILES['image']['error'] === 0) {
+        $uploadDir = '../uploads/events/';
+        $fileName = uniqid() . '_' . basename($_FILES['image']['name']);
+        move_uploaded_file($_FILES['image']['tmp_name'], $uploadDir . $fileName);
+        $imagePath = 'uploads/events/' . $fileName;
+    }
+    
+    // Insertion
+    $stmt = $pdo->prepare("INSERT INTO evenements 
+        (titre, description, date_evenement, lieu, categorie_id, nb_max_participants, image) 
+        VALUES (?, ?, ?, ?, ?, ?, ?)");
+    $stmt->execute([$titre, $description, $date, $lieu, $categorie, $nbMax, $imagePath]);
+    
+    header('Location: index.php?success=created');
+    exit;
+}
+?>
+
+
+================================================================================
+PARTIE 4 - SÉCURITÉ & SESSIONS
+================================================================================
+
+4.1 GESTION DES SESSIONS
+────────────────────────
+DÉMARRAGE : session_start() au début de chaque fichier
+VARIABLES STOCKÉES :
+- $_SESSION['user_id'] : ID utilisateur
+- $_SESSION['nom'] : Nom complet
+- $_SESSION['email'] : Email
+- $_SESSION['role'] : 'admin' ou 'user'
+- $_SESSION['avatar'] : Chemin vers l'avatar
+
+DÉCONNEXION (logout.php) :
+<?php
+session_start();
+session_unset();     // Supprime toutes les variables
+session_destroy();   // Détruit la session
+header('Location: index.php');
+exit;
+?>
+
+
+4.2 PROTECTION DES ROUTES ADMIN
+───────────────────────────────
+FICHIER : admin/auth_check.php
+<?php
+session_start();
+
+// Vérifie si connecté ET admin
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
+    header('Location: /gestion_evenements/index.php');
+    exit;
+}
+?>
+
+UTILISATION : require 'auth_check.php'; au début de chaque page admin
+
+
+4.3 VALIDATION DES DONNÉES
+──────────────────────────
+RÈGLES APPLIQUÉES :
+1. trim() sur toutes les entrées texte
+2. htmlspecialchars() à l'affichage (évite XSS)
+3. Requêtes préparées (évite SQL injection)
+4. password_hash() pour les mots de passe
+5. Vérification type de fichier pour uploads
+
+EXEMPLE - Protection XSS :
+<?php
+// MAUVAIS (vulnérable) :
+echo $_POST['nom'];
+
+// BON (sécurisé) :
+echo htmlspecialchars($_POST['nom']);
+?>
+
+EXEMPLE - Protection SQL Injection :
+<?php
+// MAUVAIS (vulnérable) :
+$sql = "SELECT * FROM users WHERE email = '" . $_POST['email'] . "'";
+
+// BON (sécurisé avec requête préparée) :
+$stmt = $pdo->prepare("SELECT * FROM users WHERE email = ?");
+$stmt->execute([$_POST['email']]);
+?>
+
+
+================================================================================
+PARTIE 5 - FONCTIONNALITÉS CLÉS
+================================================================================
+
+5.1 RECHERCHE ET FILTRAGE
+─────────────────────────
+FICHIER : events.php
+
+<?php
+$search = isset($_GET['search']) ? trim($_GET['search']) : '';
+$categorie = isset($_GET['categorie']) ? (int)$_GET['categorie'] : 0;
+
+$sql = "SELECT e.*, c.nom as categorie_nom FROM evenements e 
+        LEFT JOIN categories c ON e.categorie_id = c.id WHERE 1=1";
+$params = [];
+
+if (!empty($search)) {
+    $sql .= " AND (e.titre LIKE ? OR e.description LIKE ? OR e.lieu LIKE ?)";
+    $params[] = "%$search%";
+    $params[] = "%$search%";
+    $params[] = "%$search%";
+}
+
+if ($categorie > 0) {
+    $sql .= " AND e.categorie_id = ?";
+    $params[] = $categorie;
+}
+
+$stmt = $pdo->prepare($sql);
+$stmt->execute($params);
+$events = $stmt->fetchAll();
+?>
+
+
+5.2 SYSTÈME DE NOTIFICATIONS
+────────────────────────────
+CRÉATION (lors d'inscription) :
+$pdo->prepare("INSERT INTO notifications (user_id, evenement_id, message) VALUES (?, ?, ?)")
+    ->execute([$userId, $eventId, "Inscription confirmée : $eventTitle"]);
+
+LECTURE (dans header.php) :
+$stmt = $pdo->prepare("SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 5");
+$stmt->execute([$_SESSION['user_id']]);
+$notifications = $stmt->fetchAll();
+
+MARQUER COMME LU :
+$pdo->prepare("UPDATE notifications SET is_read = 1 WHERE id = ?")->execute([$notifId]);
+
+
+5.3 UPLOAD DE FICHIERS
+──────────────────────
+<?php
+if (isset($_FILES['image']) && $_FILES['image']['error'] === 0) {
+    $allowed = ['jpg', 'jpeg', 'png', 'gif'];
+    $ext = strtolower(pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION));
+    
+    if (in_array($ext, $allowed)) {
+        $uploadDir = 'uploads/events/';
+        $fileName = uniqid() . '_' . basename($_FILES['image']['name']);
+        $targetPath = $uploadDir . $fileName;
+        
+        if (move_uploaded_file($_FILES['image']['tmp_name'], $targetPath)) {
+            // Succès - stocker $targetPath en DB
+        }
+    }
+}
+?>
+
+
+================================================================================
+RÉSUMÉ - CE QU'IL FAUT RETENIR
+================================================================================
+
+1. ARCHITECTURE : MVC simplifié sans framework
+   - Chaque fichier PHP = 1 route
+   - Logique + Vue dans le même fichier
+   - Partage via includes/
+
+2. SÉCURITÉ : 3 piliers
+   - Requêtes préparées (PDO)
+   - htmlspecialchars() à l'affichage
+   - Vérification de session pour l'accès
+
+3. SESSIONS : Clé de l'authentification
+   - $_SESSION stocke user_id, role, email, nom
+   - Détruite avec session_destroy()
+
+4. FLUX : Visiteur → User → Admin
+   - Chaque rôle a des accès différents
+   - auth_check.php protège l'admin
+
+5. FONCTIONNALITÉS :
+   - Recherche : WHERE LIKE avec paramètres
+   - Notifications : Table simple avec is_read
+   - Uploads : Validation extension + uniqid()
+
+================================================================================

@@ -215,33 +215,46 @@ $recentNotifs = $stmtNotifs->fetchAll();
             </div>
             
             <!-- ÉVÉNEMENTS PASSÉS -->
-            <?php if (count($pastEvents) > 0): ?>
             <div class="card card-custom border-0 shadow-sm mt-4">
                 <div class="card-header bg-white border-bottom p-4">
-                    <h5 class="mb-0 fw-bold">
-                        <i class="bi bi-clock-history me-2 text-secondary"></i>Événements passés
-                    </h5>
-                </div>
-                <div class="card-body p-0">
-                    <div class="list-group list-group-flush">
-                        <?php foreach($pastEvents as $event): ?>
-                            <div class="list-group-item p-3 border-0 border-bottom">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <h6 class="mb-1 fw-bold"><?= htmlspecialchars($event['titre']) ?></h6>
-                                        <small class="text-muted">
-                                            <i class="bi bi-calendar me-1"></i><?= date('d/m/Y', strtotime($event['date_evenement'])) ?>
-                                            <i class="bi bi-geo-alt ms-3 me-1"></i><?= htmlspecialchars($event['lieu']) ?>
-                                        </small>
-                                    </div>
-                                    <span class="badge bg-secondary">Terminé</span>
-                                </div>
-                            </div>
-                        <?php endforeach; ?>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0 fw-bold">
+                            <i class="bi bi-clock-history me-2 text-secondary"></i>Événements passés
+                        </h5>
+                        <span class="badge bg-secondary"><?= count($pastEvents) ?></span>
                     </div>
                 </div>
+                <div class="card-body p-0">
+                    <?php if (count($pastEvents) > 0): ?>
+                        <div class="list-group list-group-flush">
+                            <?php foreach($pastEvents as $event): ?>
+                                <div class="list-group-item p-3 border-0 border-bottom">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-1 fw-bold"><?= htmlspecialchars($event['titre']) ?></h6>
+                                            <small class="text-muted">
+                                                <i class="bi bi-calendar me-1"></i><?= date('d/m/Y', strtotime($event['date_evenement'])) ?>
+                                                <i class="bi bi-geo-alt ms-3 me-1"></i><?= htmlspecialchars($event['lieu']) ?>
+                                            </small>
+                                        </div>
+                                        <span class="badge bg-secondary rounded-pill">Terminé</span>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                        <div class="p-3 bg-light border-top">
+                            <a href="mon_historique.php" class="btn btn-outline-secondary w-100 rounded-pill">
+                                <i class="bi bi-clock-history me-2"></i>Voir tout mon historique
+                            </a>
+                        </div>
+                    <?php else: ?>
+                        <div class="p-4 text-center">
+                            <i class="bi bi-calendar-check display-4 text-muted mb-2"></i>
+                            <p class="text-muted mb-0 small">Aucun événement passé</p>
+                        </div>
+                    <?php endif; ?>
+                </div>
             </div>
-            <?php endif; ?>
             
         </div>
         

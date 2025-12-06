@@ -71,6 +71,7 @@ if (isset($_SESSION['user_id']) && isset($pdo)) {
 <body>
 
 <nav class="navbar navbar-expand-lg nav-glass fixed-top navbar-dark">
+
   <div class="container">
     <a class="navbar-brand d-flex align-items-center gap-2 fw-bold text-white" href="/gestion_evenements/index.php">
       <span class="brand-badge"><i class="bi bi-calendar2-heart-fill"></i></span>
@@ -156,7 +157,7 @@ if (isset($_SESSION['user_id']) && isset($pdo)) {
                 </a>
                 <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-4 mt-2">
                     <li class="px-3 py-2 text-muted small fw-bold">
-                        <?= $_SESSION['role'] === 'admin' ? '👑 Admin' : 'Compte' ?><br>
+                        <?= $_SESSION['role'] === 'admin' ? ' Admin' : 'Compte' ?><br>
                         <span class="text-dark"><?= htmlspecialchars($_SESSION['nom']) ?></span>
                     </li>
                     <li><hr class="dropdown-divider"></li>

@@ -297,3 +297,138 @@ html {
 ::-webkit-scrollbar-thumb:hover {
     background: linear-gradient(135deg, #5a67d8 0%, #6b46a3 100%);
 }
+
+/* ===== ADMIN TAB NAVIGATION ===== */
+#eventTabs .btn {
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+#eventTabs .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+#eventTabs .btn-primary {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    border: none;
+}
+
+#eventTabs .btn-success {
+    background: linear-gradient(135deg, #10b981, #059669);
+    border: none;
+}
+
+#eventTabs .btn-warning {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    border: none;
+    color: white;
+}
+
+#eventTabs .btn-secondary {
+    background: linear-gradient(135deg, #6b7280, #4b5563);
+    border: none;
+}
+
+#eventTabs .btn-outline-secondary {
+    border: 2px solid #e5e7eb;
+    color: #6b7280;
+    background: white;
+}
+
+#eventTabs .btn-outline-success {
+    border: 2px solid #10b981;
+    color: #059669;
+    background: white;
+}
+
+#eventTabs .btn-outline-warning {
+    border: 2px solid #f59e0b;
+    color: #d97706;
+    background: white;
+}
+
+#eventTabs .btn-outline-secondary:hover,
+#eventTabs .btn-outline-success:hover,
+#eventTabs .btn-outline-warning:hover {
+    color: white;
+}
+
+#eventTabs .badge {
+    font-size: 0.75rem;
+    font-weight: 700;
+    min-width: 24px;
+}
+
+/* ===== HISTORY PAGE STYLES ===== */
+.history-item {
+    transition: all 0.3s ease;
+    border-left: 3px solid transparent;
+}
+
+.history-item:hover {
+    background-color: #f8fafc;
+    border-left-color: var(--primary-color);
+}
+
+.bg-gradient-primary {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+}
+
+/* ===== EVENT STATUS BADGES ===== */
+.badge.event-status {
+    font-size: 0.85rem;
+    font-weight: 700;
+    padding: 8px 12px;
+    border-radius: 50px;
+    display: inline-flex;
+    align-items: center;
+    background: white !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.badge.event-status i {
+    font-size: 0.9rem;
+    margin-right: 6px;
+}
+
+/* À venir - Vert */
+.badge.status-upcoming {
+    color: #059669 !important;
+}
+
+.badge.status-upcoming i {
+    color: #10b981;
+}
+
+/* En cours / Aujourd'hui - Orange avec animation */
+.badge.status-ongoing {
+    color: #d97706 !important;
+    animation: statusBlink 1.5s ease-in-out infinite;
+}
+
+.badge.status-ongoing i {
+    color: #f59e0b;
+}
+
+/* Terminé - Gris */
+.badge.status-finished {
+    color: #4b5563 !important;
+}
+
+.badge.status-finished i {
+    color: #6b7280;
+}
+
+@keyframes statusBlink {
+    0%, 100% { 
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), 0 0 0 0 rgba(217, 119, 6, 0.6);
+        transform: scale(1);
+    }
+    50% { 
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), 0 0 0 8px rgba(217, 119, 6, 0);
+        transform: scale(1.05);
+    }
+}
+

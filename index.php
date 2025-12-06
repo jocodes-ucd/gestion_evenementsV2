@@ -112,6 +112,26 @@ $events = $stmt->fetchAll();
         <div class="row g-4">
             <?php if(count($events) > 0): ?>
                 <?php foreach($events as $event): ?>
+                    <?php
+                    // Déterminer le statut de l'événement
+                    $eventDate = strtotime($event['date_evenement']);
+                    $today = strtotime(date('Y-m-d'));
+                    $eventDay = strtotime(date('Y-m-d', $eventDate));
+                    
+                    if ($eventDay == $today) {
+                        $statusClass = 'status-ongoing';
+                        $statusIcon = 'bi-broadcast';
+                        $statusText = 'Aujourd\'hui';
+                    } elseif ($eventDate > time()) {
+                        $statusClass = 'status-upcoming';
+                        $statusIcon = 'bi-clock-fill';
+                        $statusText = 'À venir';
+                    } else {
+                        $statusClass = 'status-finished';
+                        $statusIcon = 'bi-check-circle-fill';
+                        $statusText = 'Terminé';
+                    }
+                    ?>
                     <div class="col-lg-4 col-md-6">
                         <div class="card card-custom h-100 group-hover border-0 shadow-sm">
                             <div style="height:220px; overflow: hidden; position: relative;">
@@ -122,6 +142,14 @@ $events = $stmt->fetchAll();
                                 ?>
                                 <img src="<?= $img ?>" style="width:100%; height:100%; object-fit:cover; transition:transform 0.5s;" 
                                      onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
+                                
+                                <!-- Badge Statut -->
+                                <div class="position-absolute top-0 end-0 m-3">
+                                    <span class="badge bg-white text-dark fw-bold shadow-sm px-3 py-2 rounded-pill event-status <?= $statusClass ?>">
+                                        <i class="bi <?= $statusIcon ?> me-1 <?= $statusClass == 'status-upcoming' ? 'text-success' : ($statusClass == 'status-ongoing' ? 'text-warning' : 'text-secondary') ?>"></i><?= $statusText ?>
+                                    </span>
+                                </div>
+                                
                                 <div class="position-absolute top-0 start-0 m-3">
                                     <span class="badge bg-white text-dark fw-bold shadow-sm px-3 py-2 rounded-pill">
                                         <i class="bi bi-tag-fill me-1 text-primary"></i>
