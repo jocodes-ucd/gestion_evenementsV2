@@ -92,7 +92,7 @@ if (isset($_SESSION['user_id']) && isset($pdo)) {
         <?php elseif(isset($_SESSION['user_id'])): ?>
             <!-- REGULAR USER NAVIGATION -->
             <li class="nav-item"><a class="nav-link" href="/gestion_evenements/index.php">ACCUEIL</a></li>
-            <li class="nav-item"><a class="nav-link" href="/gestion_evenements/mon_espace.php"><i class="bi bi-speedometer2 me-1"></i>MON ESPACE</a></li>
+            <li class="nav-item"><a class="nav-link" href="/gestion_evenements/mon_espace.php"></i>MON ESPACE</a></li>
             <li class="nav-item"><a class="nav-link" href="/gestion_evenements/events.php">AGENDA</a></li>
         <?php else: ?>
             <!-- NOT LOGGED IN NAVIGATION -->
